@@ -3,7 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:PCMon.ViewModels"
         xmlns:v="clr-namespace:PCMon.Views"
-        Title="PCMon" Icon="Assets/pcmon.ico"
+        xmlns:core="clr-namespace:PCMon.Core"
+        Title="{x:Static core:Strings.Brand}" Icon="Assets/pcmon.ico"
         Width="1100" Height="720" MinWidth="900" MinHeight="600"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource BgBrush}" Foreground="{DynamicResource TextBrush}"
@@ -39,12 +40,17 @@
         </Border>
 
         <!-- Nav rail -->
-        <Border DockPanel.Dock="Left" Width="176" Background="{DynamicResource SurfaceBrush}"
+        <Border DockPanel.Dock="Left" Width="196" Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,1,0">
             <DockPanel>
-                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="20,18,0,18">
-                    <Image Source="Assets/pcmon.ico" Width="26" Height="26" />
-                    <TextBlock Text="PCMon" FontSize="19" FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center" />
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="18,16,0,16"
+                            AutomationProperties.Name="{x:Static core:Strings.Brand}">
+                    <Image Source="Assets/pcmon.ico" Width="28" Height="28" VerticalAlignment="Center" />
+                    <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="{x:Static core:Strings.AppName}" FontSize="19" FontWeight="Bold" />
+                        <TextBlock Text="{Binding Source={x:Static core:Strings.Author}, StringFormat=by {0}}"
+                                   FontSize="11" Foreground="{DynamicResource DimBrush}" />
+                    </StackPanel>
                 </StackPanel>
 
                 <Button DockPanel.Dock="Bottom" Command="{Binding AboutCommand}" Style="{StaticResource RowButton}"

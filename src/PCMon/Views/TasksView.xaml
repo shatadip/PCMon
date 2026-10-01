@@ -51,7 +51,7 @@
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <TextBlock Text="&#xE72E;" Style="{StaticResource Glyph}" Foreground="{DynamicResource DimBrush}"
-                                               ToolTip="Critical system process: PCMon won't end it"
+                                               ToolTip="Critical system process: PCMON won't end it"
                                                Visibility="{Binding IsCritical, Converter={StaticResource BoolToVisibility}}" />
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>

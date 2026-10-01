@@ -42,9 +42,9 @@ static class Dialogs
     public static bool Confirm(string message, string title) =>
         Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes;
 
-    public static void Info(string message, string title = "PCMon") =>
+    public static void Info(string message, string title = Core.Strings.AppName) =>
         Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
 
-    public static void Error(string message, string title = "PCMon") =>
+    public static void Error(string message, string title = Core.Strings.AppName) =>
         Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
 }

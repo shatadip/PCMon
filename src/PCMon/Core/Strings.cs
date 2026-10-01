@@ -6,6 +6,10 @@ namespace PCMon.Core;
 /// </summary>
 public static class Strings
 {
+    public const string AppName = "PCMON";
+    public const string Author = "Shatadip Majumder";
+    public const string Brand = AppName + " by " + Author;
+
     public const string AllGreen = "All systems nominal. Suspiciously nominal.";
     // WPF can't draw colour emoji (newer ones render as boxes), so in-app strings stay emoji-free.
     public const string CpuHot = "CPU is hotter than your takes. Check cooling.";
@@ -39,12 +43,12 @@ public static class Strings
     public const string UnknownUsage = @"Unknown ¯\_(ツ)_/¯";
 
     public const string About =
-        "PCMon v{0}\n\nMade with C#, coffee, and mild thermal anxiety.\n\n" +
+        AppName + " v{0}\nby " + Author + "\n\nMade with C#, coffee, and mild thermal anxiety.\n\n" +
         "Sensors by LibreHardwareMonitor (MPL-2.0).\nhttps://github.com/shatadip/PCMon";
 
     public const string CpuSensorsNeedDriver =
         "CPU temperature, clock and power sensors are unavailable. LibreHardwareMonitor needs the free " +
-        "PawnIO driver (pawnio.eu) to read them. PCMon doesn't install drivers, so it falls back to the " +
+        "PawnIO driver (pawnio.eu) to read them. " + AppName + " doesn't install drivers, so it falls back to the " +
         "ACPI thermal zone where it can.";
 }
 

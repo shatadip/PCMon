@@ -354,6 +354,14 @@ public class StringsTests
     }
 
     [Fact]
+    public void Branding()
+    {
+        Assert.Equal("PCMON by Shatadip Majumder", Strings.Brand);
+        var about = string.Format(Strings.About, "1.0.1");
+        Assert.StartsWith("PCMON v1.0.1\nby Shatadip Majumder", about);
+    }
+
+    [Fact]
     public void InAppStringsAvoidEmojiWpfCannotDraw()
     {
         var all = typeof(Strings).GetFields().Where(f => f.IsLiteral).Select(f => (string)f.GetRawConstantValue()!);

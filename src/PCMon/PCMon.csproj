@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -7,12 +7,16 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>12</LangVersion>
-    <AssemblyName>PCMon</AssemblyName>
+    <!-- Branded exe name; code namespaces stay PCMon. -->
+    <AssemblyName>PCMON</AssemblyName>
     <RootNamespace>PCMon</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\pcmon.ico</ApplicationIcon>
-    <Version>1.0.0</Version>
-    <Product>PCMon</Product>
+    <Version>1.0.2</Version>
+    <Product>PCMON</Product>
+    <!-- Shown as the file description in Task Manager and file Properties. -->
+    <AssemblyTitle>PCMON by Shatadip Majumder</AssemblyTitle>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <Authors>Shatadip Majumder</Authors>
     <Company>Shatadip Majumder</Company>
     <Description>Your PC's vital signs, minus the hospital bill.</Description>

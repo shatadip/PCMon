@@ -27,7 +27,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         Dashboard.IsActive = true;
 
         AboutCommand = new RelayCommand(() =>
-            Dialogs.Info(string.Format(Strings.About, Version), "About PCMon"));
+            Dialogs.Info(string.Format(Strings.About, Version), "About " + Strings.AppName));
         GoToPageCommand = new RelayCommand<string>(i =>
         {
             if (int.TryParse(i, out var n) && n >= 1 && n <= Pages.Count) CurrentPage = Pages[n - 1];
