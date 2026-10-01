@@ -1,0 +1,84 @@
+<UserControl x:Class="PCMon.Views.HardwareView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:PCMon.ViewModels"
+             xmlns:conv="clr-namespace:PCMon.Converters">
+    <DockPanel>
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+            <Button DockPanel.Dock="Right" Command="{Binding ResetMinMaxCommand}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE72C;" Style="{StaticResource Glyph}" />
+                    <TextBlock Text="Reset Min/Max" Margin="8,0,0,0" />
+                </StackPanel>
+            </Button>
+            <StackPanel>
+                <TextBlock Text="Hardware" Style="{StaticResource PageTitle}" />
+                <TextBlock Text="{Binding Summary}" Style="{StaticResource Dim}" Margin="0,2,0,0" />
+            </StackPanel>
+        </DockPanel>
+
+        <Border DockPanel.Dock="Top" Style="{StaticResource Banner}" Visibility="{Binding Banner, Converter={StaticResource NullToCollapsed}}">
+            <DockPanel>
+                <TextBlock Text="&#xE7BA;" Style="{StaticResource Glyph}" Foreground="{DynamicResource WarnBrush}" Margin="0,0,10,0" />
+                <TextBlock Text="{Binding Banner}" TextWrapping="Wrap" />
+            </DockPanel>
+        </Border>
+
+        <!-- column header, aligned with the sensor rows below -->
+        <Border DockPanel.Dock="Top" Background="{DynamicResource Surface2Brush}" BorderBrush="{DynamicResource LineBrush}"
+                BorderThickness="1,1,1,0" CornerRadius="6,6,0,0" Padding="8,6">
+            <Grid TextElement.Foreground="{DynamicResource DimBrush}" TextElement.FontWeight="SemiBold">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="130" />
+                    <ColumnDefinition Width="130" />
+                    <ColumnDefinition Width="130" />
+                    <ColumnDefinition Width="12" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Sensor" />
+                <TextBlock Grid.Column="1" Text="Current" HorizontalAlignment="Right" />
+                <TextBlock Grid.Column="2" Text="Min" HorizontalAlignment="Right" />
+                <TextBlock Grid.Column="3" Text="Max" HorizontalAlignment="Right" />
+            </Grid>
+        </Border>
+
+        <TreeView ItemsSource="{Binding Devices}" HorizontalContentAlignment="Stretch"
+                  ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Sensors">
+            <TreeView.ItemContainerStyle>
+                <Style TargetType="TreeViewItem">
+                    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+                    <Setter Property="Padding" Value="2,3" />
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                </Style>
+            </TreeView.ItemContainerStyle>
+            <TreeView.Resources>
+                <HierarchicalDataTemplate DataType="{x:Type vm:DeviceNode}" ItemsSource="{Binding Children}">
+                    <StackPanel Orientation="Horizontal" Margin="0,4,0,2">
+                        <TextBlock Text="{Binding Glyph}" Style="{StaticResource Glyph}" Foreground="{DynamicResource AccentBrush}" FontSize="15" />
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" Margin="8,0,0,0" />
+                    </StackPanel>
+                </HierarchicalDataTemplate>
+                <HierarchicalDataTemplate DataType="{x:Type vm:GroupNode}" ItemsSource="{Binding Children}">
+                    <TextBlock Text="{Binding Name}" Foreground="{DynamicResource DimBrush}" FontWeight="SemiBold" />
+                </HierarchicalDataTemplate>
+                <DataTemplate DataType="{x:Type vm:SensorNode}">
+                    <!-- Width compensates for the two indent levels so the value columns line up with the header. -->
+                    <Grid ToolTip="{Binding Tooltip}"
+                          Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=TreeView}, Converter={x:Static conv:SensorRowWidth.Instance}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="130" />
+                            <ColumnDefinition Width="130" />
+                            <ColumnDefinition Width="130" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Grid.Column="1" Text="{Binding ValueText}" HorizontalAlignment="Right" FontWeight="SemiBold" />
+                        <TextBlock Grid.Column="2" Text="{Binding MinText}" HorizontalAlignment="Right" Foreground="{DynamicResource DimBrush}" />
+                        <TextBlock Grid.Column="3" Text="{Binding MaxText}" HorizontalAlignment="Right" Foreground="{DynamicResource DimBrush}" />
+                    </Grid>
+                </DataTemplate>
+            </TreeView.Resources>
+        </TreeView>
+    </DockPanel>
+</UserControl>

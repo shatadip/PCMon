@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>12</LangVersion>
+    <AssemblyName>PCMon</AssemblyName>
+    <RootNamespace>PCMon</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\pcmon.ico</ApplicationIcon>
+    <Version>1.0.0</Version>
+    <Product>PCMon</Product>
+    <Authors>Shatadip Majumder</Authors>
+    <Company>Shatadip Majumder</Company>
+    <Description>Your PC's vital signs, minus the hospital bill.</Description>
+    <Copyright>© 2026 Shatadip Majumder</Copyright>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\pcmon.ico" />
+    <InternalsVisibleTo Include="PCMon.Tests" />
+  </ItemGroup>
+
+</Project>

@@ -28,6 +28,7 @@ There is no installer, no setup wizard, no services, no telemetry and no "Would 
 | Charts | `LiveChartsCore.SkiaSharpView.WPF` (or a hand-drawn `Polyline` sparkline if lighter) |
 | Packaging | One self-contained file, see §7 |
 | Privileges | App manifest `requireAdministrator`, because sensors and Prefetch need it |
+| CPU sensor driver | LHM ≥ 0.9.5 reads CPU temps, clocks and power through the **PawnIO** driver. PCMon never installs it. Without it, PCMon shows a banner and falls back to the ACPI thermal zone (WMI) |
 
 ## 3. UI layout
 
@@ -48,8 +49,8 @@ One resizable window (default 1100×720, min 900×600). It has a left nav rail w
 ## 4. Functional requirements
 
 ### 4.1 Dashboard (home)
-- **FR-1 MUST**: Show tiles for CPU (total load, package temp), GPU (load, temp, VRAM), RAM (used/total), each fixed disk (used %, temp if available) and network (current ↓/↑).
-- **FR-2 MUST**: Each tile has a 60-second sparkline. Refresh every **1 s** on a background thread, and never block the UI thread.
+- **FR-1 MUST**: Show tiles for CPU (total load, package temp), GPU (load, temp, VRAM), RAM (used/total) and network (current ↓/↑). Add a **Storage** card with one usage bar per fixed disk, showing used %, free space and temp if available.
+- **FR-2 MUST**: Each tile has a 60-second sparkline. Refresh every **1 s** on a background thread, and never block the UI thread. Disks get bars instead of sparklines: "% used" barely moves, and PCs with many drives would push everything else off screen.
 - **FR-3 MUST**: Colour each tile **green / amber / red** by threshold. The defaults are: CPU/GPU temp ≥ 80 °C amber, ≥ 90 °C red. RAM ≥ 85 % amber, ≥ 95 % red. Disk ≥ 90 % amber.
 - **FR-4 MUST**: Show the top 5 processes by CPU and by RAM. Clicking one jumps to that process on the Tasks page.
 
@@ -74,10 +75,10 @@ One resizable window (default 1100×720, min 900×600). It has a left nav rail w
 - **FR-16 MUST**: Estimate **"Last used"** in this order:
   1. The newest `C:\Windows\Prefetch\*.pf` whose exe name matches an exe in the app's `InstallLocation`
   2. The UserAssist registry (ROT13-decoded) last-run time
-  3. Otherwise show **"Unknown 🤷"**
+  3. Otherwise show **"Unknown ¯\\\_(ツ)\_/¯"**
 
   Show Name, Publisher, Size, Installed On and Last Used.
-- **FR-17 MUST**: By default show only apps unused for **≥ 90 days**. A dropdown offers 30 / 60 / 90 / 180 days and "Show all".
+- **FR-17 MUST**: By default show only apps unused for **≥ 90 days**. Filter chips offer 30 / 60 / 90 / 180 days and "Show all", and a checkbox hides apps with unknown usage.
 - **FR-18 MUST**: Each row has a checkbox, and there is a **"Uninstall selected"** button. PCMon runs each app's **own** `UninstallString`, one at a time, and waits for each to exit. It never deletes files or registry keys itself and never does silent mass uninstalls.
 - **FR-19 MUST**: Always show the confirmation dialog first, listing the selected apps. After the uninstallers finish, refresh the list.
 
@@ -90,17 +91,28 @@ One resizable window (default 1100×720, min 900×600). It has a left nav rail w
 - **NFR-6 Accessibility**: The app is fully keyboard navigable, and colour is never the only signal. Every amber or red tile also shows an icon.
 
 ## 6. Humour spec (light sprinkle, professional everywhere else)
-Humour lives **only** in status-bar messages, empty states, confirmations and the About box. Data labels and numbers stay serious. Keep the messages below in one `Strings.cs` so they're easy to change.
+Humour lives **only** in status-bar messages, empty states, confirmations and the About box. Data labels and numbers stay serious. Keep the messages below in one `Strings.cs` so they're easy to change. Keep emoji out of in-app strings, because WPF renders newer emoji as empty boxes.
+
+The status bar shows the single most important message, in this priority order:
 
 | Situation | Message |
 |---|---|
-| All green | "All systems nominal. Suspiciously nominal." |
-| CPU ≥ 90 °C | "CPU is hotter than your takes. Check cooling. 🔥" |
+| CPU ≥ 90 °C | "CPU is hotter than your takes. Check cooling." |
+| GPU ≥ 90 °C | "GPU is running a fever. Check cooling." |
 | RAM ≥ 95 % | "RAM is full. Chrome has entered the chat." |
+| Any temp ≥ 80 °C | "Things are warming up. Keep an eye on the amber tiles." |
+| RAM ≥ 85 % | "Memory is getting crowded. Maybe close a tab. Or forty." |
+| Disk ≥ 90 % | "A disk is nearly full. Time for some digital decluttering." |
 | Net idle 60 s | "The internet is quiet. Too quiet." |
+| All green | "All systems nominal. Suspiciously nominal." |
+
+Elsewhere in the app:
+
+| Situation | Message |
+|---|---|
 | End-task confirm | "End **{name}**? It had hopes and dreams. (Unsaved work will be lost.)" |
 | Kill blocked (critical) | "Nice try. Killing **{name}** would blue-screen us both." |
-| No unused apps | "No unused apps found. You use everything? Respect. 🫡" |
+| No unused apps | "No unused apps found. You use everything? Respect." |
 | Uninstall confirm | "Uninstall {n} app(s)? They won't be missed. Probably." |
 | Sensor unavailable | "This sensor is shy." (shown as a tooltip on `—`) |
 | About box | "PCMon v1.0 — Made with C#, coffee, and mild thermal anxiety." |

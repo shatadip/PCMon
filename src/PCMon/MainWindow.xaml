@@ -1,0 +1,74 @@
+<Window x:Class="PCMon.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:PCMon.ViewModels"
+        xmlns:v="clr-namespace:PCMon.Views"
+        Title="PCMon" Icon="Assets/pcmon.ico"
+        Width="1100" Height="720" MinWidth="900" MinHeight="600"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource BgBrush}" Foreground="{DynamicResource TextBrush}"
+        FontFamily="Segoe UI" FontSize="13"
+        UseLayoutRounding="True" TextOptions.TextFormattingMode="Display">
+
+    <Window.InputBindings>
+        <KeyBinding Modifiers="Ctrl" Key="D1" Command="{Binding GoToPageCommand}" CommandParameter="1" />
+        <KeyBinding Modifiers="Ctrl" Key="D2" Command="{Binding GoToPageCommand}" CommandParameter="2" />
+        <KeyBinding Modifiers="Ctrl" Key="D3" Command="{Binding GoToPageCommand}" CommandParameter="3" />
+        <KeyBinding Modifiers="Ctrl" Key="D4" Command="{Binding GoToPageCommand}" CommandParameter="4" />
+        <KeyBinding Modifiers="Ctrl" Key="D5" Command="{Binding GoToPageCommand}" CommandParameter="5" />
+    </Window.InputBindings>
+
+    <Window.Resources>
+        <DataTemplate DataType="{x:Type vm:DashboardViewModel}"><v:DashboardView /></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:HardwareViewModel}"><v:HardwareView /></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:NetworkViewModel}"><v:NetworkView /></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:TasksViewModel}"><v:TasksView /></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:UnusedAppsViewModel}"><v:UnusedAppsView /></DataTemplate>
+    </Window.Resources>
+
+    <DockPanel x:Name="Root" Background="{DynamicResource BgBrush}">
+        <!-- Status bar -->
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,1,0,0" Padding="14,6">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Right" Style="{StaticResource Dim}">
+                    <Run Text="{Binding AdminText, Mode=OneWay}" /><Run Text="  ·  Refresh 1 s  ·  Ctrl+1…5 to switch pages" />
+                </TextBlock>
+                <TextBlock Text="{Binding StatusText}" VerticalAlignment="Center" AutomationProperties.LiveSetting="Polite" />
+            </DockPanel>
+        </Border>
+
+        <!-- Nav rail -->
+        <Border DockPanel.Dock="Left" Width="176" Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,1,0">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="20,18,0,18">
+                    <Image Source="Assets/pcmon.ico" Width="26" Height="26" />
+                    <TextBlock Text="PCMon" FontSize="19" FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center" />
+                </StackPanel>
+
+                <Button DockPanel.Dock="Bottom" Command="{Binding AboutCommand}" Style="{StaticResource RowButton}"
+                        Margin="8,0,8,12" Padding="12,9" HorizontalContentAlignment="Left" Foreground="{DynamicResource DimBrush}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE946;" Style="{StaticResource Glyph}" FontSize="15" />
+                        <TextBlock Text="About" Margin="12,0,0,0" />
+                    </StackPanel>
+                </Button>
+
+                <ListBox ItemsSource="{Binding Pages}" SelectedItem="{Binding CurrentPage}" Style="{StaticResource NavList}"
+                         AutomationProperties.Name="Pages">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding Glyph}" Style="{StaticResource Glyph}" FontSize="15" />
+                                <TextBlock Text="{Binding Title}" Margin="12,0,0,0" FontSize="14" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </Border>
+
+        <ContentControl Content="{Binding CurrentPage}" Margin="20,18,20,14" Focusable="False" />
+    </DockPanel>
+</Window>

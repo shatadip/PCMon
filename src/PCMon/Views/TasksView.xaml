@@ -1,0 +1,134 @@
+<UserControl x:Class="PCMon.Views.TasksView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <DockPanel>
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                <RadioButton Content="Processes" Style="{StaticResource Chip}" GroupName="TasksTab"
+                             IsChecked="{Binding Tab, Converter={StaticResource Equals}, ConverterParameter=Processes}" />
+                <RadioButton Content="Scheduled Tasks" Style="{StaticResource Chip}" GroupName="TasksTab" Margin="0"
+                             IsChecked="{Binding Tab, Converter={StaticResource Equals}, ConverterParameter=Scheduled}" />
+            </StackPanel>
+            <TextBlock Text="Tasks" Style="{StaticResource PageTitle}" />
+        </DockPanel>
+
+        <Grid>
+            <!-- Processes -->
+            <DockPanel Visibility="{Binding Tab, Converter={StaticResource EqualsToVisibility}, ConverterParameter=Processes}">
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                    <Button DockPanel.Dock="Right" Command="{Binding EndTaskCommand}" Margin="10,0,0,0"
+                            ToolTip="End the selected process (Delete)">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE711;" Style="{StaticResource Glyph}" Foreground="{DynamicResource CritBrush}" />
+                            <TextBlock Text="End task" Margin="8,0,0,0" />
+                        </StackPanel>
+                    </Button>
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding ProcessSummary}" Style="{StaticResource Dim}" Margin="12,0,0,0" />
+                    <Grid>
+                        <TextBox x:Name="Search" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                 AutomationProperties.Name="Search processes" />
+                        <TextBlock Text="Search by name, path or PID…" Style="{StaticResource Dim}" Margin="9,0,0,0"
+                                   IsHitTestVisible="False">
+                            <TextBlock.Visibility>
+                                <Binding Path="Text" ElementName="Search" Converter="{StaticResource EqualsToVisibility}" ConverterParameter="" />
+                            </TextBlock.Visibility>
+                        </TextBlock>
+                    </Grid>
+                </DockPanel>
+
+                <DataGrid x:Name="ProcessGrid" ItemsSource="{Binding ProcessesView}" SelectedItem="{Binding SelectedProcess}"
+                          SelectionChanged="OnProcessSelectionChanged" AutomationProperties.Name="Processes">
+                    <DataGrid.InputBindings>
+                        <KeyBinding Key="Delete" Command="{Binding EndTaskCommand}" />
+                    </DataGrid.InputBindings>
+                    <DataGrid.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="End task" Command="{Binding EndTaskCommand}" />
+                        </ContextMenu>
+                    </DataGrid.ContextMenu>
+                    <DataGrid.Columns>
+                        <DataGridTemplateColumn Width="28" CanUserSort="False">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="&#xE72E;" Style="{StaticResource Glyph}" Foreground="{DynamicResource DimBrush}"
+                                               ToolTip="Critical system process: PCMon won't end it"
+                                               Visibility="{Binding IsCritical, Converter={StaticResource BoolToVisibility}}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="190" />
+                        <DataGridTextColumn Header="PID" Binding="{Binding Pid}" Width="70" ElementStyle="{StaticResource RightCell}" />
+                        <DataGridTemplateColumn Header="Status" Width="120" SortMemberPath="StatusText">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock x:Name="T" Text="{Binding StatusText}" />
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding Status}" Value="NotResponding">
+                                            <Setter TargetName="T" Property="Foreground" Value="{DynamicResource CritBrush}" />
+                                            <Setter TargetName="T" Property="FontWeight" Value="SemiBold" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Status}" Value="Suspended">
+                                            <Setter TargetName="T" Property="Foreground" Value="{DynamicResource DimBrush}" />
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="CPU" Binding="{Binding Cpu, StringFormat={}{0:0.0} %}" Width="80"
+                                            SortMemberPath="Cpu" SortDirection="Descending" ElementStyle="{StaticResource RightCell}" />
+                        <DataGridTextColumn Header="Memory" Binding="{Binding RamMb, StringFormat={}{0:#,0.0} MB}" Width="100"
+                                            SortMemberPath="RamMb" ElementStyle="{StaticResource RightCell}" />
+                        <DataGridTextColumn Header="Path" Binding="{Binding Path}" Width="*" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+
+            <!-- Scheduled tasks (read-only) -->
+            <DockPanel Visibility="{Binding Tab, Converter={StaticResource EqualsToVisibility}, ConverterParameter=Scheduled}">
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                    <Button DockPanel.Dock="Right" Command="{Binding LoadTasksCommand}" Margin="10,0,0,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE72C;" Style="{StaticResource Glyph}" />
+                            <TextBlock Text="Refresh" Margin="8,0,0,0" />
+                        </StackPanel>
+                    </Button>
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton Content="All" Style="{StaticResource Chip}" GroupName="TaskFilter"
+                                     IsChecked="{Binding TaskFilter, Converter={StaticResource Equals}, ConverterParameter=All}" />
+                        <RadioButton Content="Running" Style="{StaticResource Chip}" GroupName="TaskFilter"
+                                     IsChecked="{Binding TaskFilter, Converter={StaticResource Equals}, ConverterParameter=Running}" />
+                        <RadioButton Content="Not running" Style="{StaticResource Chip}" GroupName="TaskFilter"
+                                     IsChecked="{Binding TaskFilter, Converter={StaticResource Equals}, ConverterParameter=NotRunning}" />
+                        <TextBlock Text="{Binding TaskSummary}" Style="{StaticResource Dim}" Margin="8,0,0,0" />
+                    </StackPanel>
+                </DockPanel>
+
+                <DataGrid ItemsSource="{Binding ScheduledTasksView}" AutomationProperties.Name="Scheduled tasks">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="2*" />
+                        <DataGridTextColumn Header="Folder" Binding="{Binding Folder}" Width="1.5*" />
+                        <DataGridTemplateColumn Header="State" Width="90" SortMemberPath="StateText">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock x:Name="T" Text="{Binding StateText}" />
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding State}" Value="4">
+                                            <Setter TargetName="T" Property="Foreground" Value="{DynamicResource OkBrush}" />
+                                            <Setter TargetName="T" Property="FontWeight" Value="SemiBold" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding State}" Value="1">
+                                            <Setter TargetName="T" Property="Foreground" Value="{DynamicResource DimBrush}" />
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="Last run" Binding="{Binding LastRunText}" Width="130" SortMemberPath="LastRun" />
+                        <DataGridTextColumn Header="Next run" Binding="{Binding NextRunText}" Width="130" SortMemberPath="NextRun" />
+                        <DataGridTextColumn Header="Last result" Binding="{Binding ResultText}" Width="110" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+        </Grid>
+    </DockPanel>
+</UserControl>

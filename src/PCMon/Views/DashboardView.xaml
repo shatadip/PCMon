@@ -1,0 +1,136 @@
+<UserControl x:Class="PCMon.Views.DashboardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:PCMon.Controls">
+    <UserControl.Resources>
+        <DataTemplate x:Key="ProcessRowCpu">
+            <Button Style="{StaticResource RowButton}" ToolTip="Show in Tasks"
+                    Command="{Binding DataContext.OpenProcessCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    CommandParameter="{Binding Pid}">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding Cpu, StringFormat={}{0:0.0} %}" />
+                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                </DockPanel>
+            </Button>
+        </DataTemplate>
+        <DataTemplate x:Key="ProcessRowRam">
+            <Button Style="{StaticResource RowButton}" ToolTip="Show in Tasks"
+                    Command="{Binding DataContext.OpenProcessCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    CommandParameter="{Binding Pid}">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding RamMb, StringFormat={}{0:#,0} MB}" />
+                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                </DockPanel>
+            </Button>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
+        <StackPanel>
+            <TextBlock Text="Dashboard" Style="{StaticResource PageTitle}" Margin="0,0,0,14" />
+
+            <ItemsControl ItemsSource="{Binding Tiles}" Focusable="False" Margin="0,0,-12,0">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Columns="4" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource Card}" Margin="0,0,12,12" Padding="0"
+                                BorderBrush="{Binding Level, Converter={StaticResource LevelToBrush}}"
+                                AutomationProperties.Name="{Binding Title}">
+                            <Grid>
+                                <!-- level strip -->
+                                <Border Width="4" HorizontalAlignment="Left" CornerRadius="8,0,0,8"
+                                        Background="{Binding Level, Converter={StaticResource LevelToBrush}}" />
+                                <Grid Margin="18,12,14,10">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="56" />
+                                    </Grid.RowDefinitions>
+                                    <DockPanel>
+                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource Glyph}" FontSize="16"
+                                                   Text="{Binding Level, Converter={StaticResource LevelToGlyph}}"
+                                                   Foreground="{Binding Level, Converter={StaticResource LevelToBrush}}" />
+                                        <TextBlock Text="{Binding Glyph}" Style="{StaticResource Glyph}" Foreground="{DynamicResource DimBrush}" />
+                                        <TextBlock Text="{Binding Title}" Margin="8,0,0,0" Style="{StaticResource Dim}" FontWeight="SemiBold" />
+                                    </DockPanel>
+                                    <TextBlock Grid.Row="1" Text="{Binding Value}" FontSize="24" FontWeight="SemiBold" Margin="0,4,0,0"
+                                               TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Grid.Row="2" Text="{Binding Subtitle}" Style="{StaticResource Dim}" TextTrimming="CharacterEllipsis"
+                                               ToolTip="{Binding Subtitle}" />
+                                    <c:Sparkline Grid.Row="3" Margin="0,8,0,0" Values="{Binding Points}" Values2="{Binding Points2}"
+                                                 Maximum="{Binding Maximum}" Capacity="60"
+                                                 Stroke="{DynamicResource DownBrush}" Stroke2="{DynamicResource UpBrush}" />
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.35*" />
+                    <ColumnDefinition Width="12" />
+                    <ColumnDefinition />
+                    <ColumnDefinition Width="12" />
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+
+                <Border Style="{StaticResource Card}" VerticalAlignment="Top">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <TextBlock Text="&#xEDA2;" Style="{StaticResource Glyph}" Foreground="{DynamicResource DimBrush}" />
+                            <TextBlock Text="Storage" Style="{StaticResource Dim}" FontWeight="SemiBold" Margin="8,0,0,0" />
+                        </StackPanel>
+                        <ItemsControl ItemsSource="{Binding Disks}" Focusable="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,4" AutomationProperties.Name="{Binding Letter}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="30" />
+                                            <ColumnDefinition />
+                                            <ColumnDefinition Width="46" />
+                                            <ColumnDefinition Width="22" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <TextBlock Text="{Binding Letter}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        <ProgressBar Grid.Column="1" Style="{StaticResource Meter}" Value="{Binding UsedPercent, Mode=OneWay}"
+                                                     Foreground="{Binding Level, Converter={StaticResource LevelToBrush}}" />
+                                        <TextBlock Grid.Column="2" Text="{Binding PercentText}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="3" Style="{StaticResource Glyph}" HorizontalAlignment="Right"
+                                                   Text="{Binding Level, Converter={StaticResource LevelToGlyph}}"
+                                                   Foreground="{Binding Level, Converter={StaticResource LevelToBrush}}" />
+                                        <TextBlock Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" Text="{Binding Detail}"
+                                                   Style="{StaticResource Dim}" FontSize="12" TextTrimming="CharacterEllipsis" Margin="0,2,0,0" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top">
+                    <StackPanel>
+                        <TextBlock Text="Top 5 by CPU" Style="{StaticResource Dim}" FontWeight="SemiBold" Margin="6,0,0,6" />
+                        <ItemsControl ItemsSource="{Binding TopCpu}" ItemTemplate="{StaticResource ProcessRowCpu}" Focusable="False" />
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="4" Style="{StaticResource Card}" VerticalAlignment="Top">
+                    <StackPanel>
+                        <TextBlock Text="Top 5 by memory" Style="{StaticResource Dim}" FontWeight="SemiBold" Margin="6,0,0,6" />
+                        <ItemsControl ItemsSource="{Binding TopRam}" ItemTemplate="{StaticResource ProcessRowRam}" Focusable="False" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
