@@ -9,7 +9,8 @@ namespace PCMon.ViewModels;
 public sealed class TileViewModel(string title, string glyph, double maximum = 100, bool twoSeries = false) : ObservableObject
 {
     readonly RollingBuffer _history = new(60);
-    readonly RollingBuffer? _history2 = twoSeries ? new RollingBuffer(60) : null;
+    readonly RollingBuffer _history2 = new(60);
+    readonly bool _twoSeries = twoSeries;
 
     public string Title { get; } = title;
     public string Glyph { get; } = glyph;
@@ -32,11 +33,15 @@ public sealed class TileViewModel(string title, string glyph, double maximum = 1
     double[]? _points2;
     public double[]? Points2 { get => _points2; private set => SetProperty(ref _points2, value); }
 
+    /// <summary>Labels for the two sparkline series (blue, pink); null hides the legend.</summary>
+    public string? Legend1 { get; set; }
+    public string? Legend2 { get; set; }
+
     public void Push(double value, double? second = null)
     {
         _history.Add(value);
         Points = _history.ToArray();
-        if (_history2 is not null && second is { } s)
+        if ((_twoSeries || Legend2 is not null) && second is { } s)
         {
             _history2.Add(s);
             Points2 = _history2.ToArray();
@@ -70,6 +75,10 @@ public sealed class DashboardViewModel : PageViewModel
     public DashboardViewModel(Action<int> openProcess) : base("Dashboard", "")
     {
         Tiles = [_cpu, _gpu, _ram, _net];
+        _cpu.Legend1 = _gpu.Legend1 = "load %";
+        _cpu.Legend2 = _gpu.Legend2 = "temp °C";
+        _net.Legend1 = "in";
+        _net.Legend2 = "out";
         OpenProcessCommand = new RelayCommand<int>(openProcess);
     }
 
@@ -79,13 +88,14 @@ public sealed class DashboardViewModel : PageViewModel
     public ObservableCollection<ProcSample> TopRam { get; } = [];
     public IRelayCommand<int> OpenProcessCommand { get; }
 
-    public void Apply(Snapshot s)
+    public void Apply(Snapshot s, Level security = Level.Unknown, int alerts = 0)
     {
-        _cpu.Value = Format.Percent(s.CpuLoad);
-        var cpuTempText = s.CpuTemp is null ? "temp —" : Format.Celsius(s.CpuTemp) + (s.CpuTempIsAcpi ? " (ACPI)" : "");
-        _cpu.Subtitle = $"{cpuTempText} · {Shorten(s.CpuName) ?? "CPU"}";
+        // Temperature is the headline (that's what a hardware monitor is for); load sits underneath.
+        _cpu.Value = Format.Celsius(s.CpuTemp);
+        var source = s.CpuTemp is null ? "Temp unavailable · " : s.CpuTempIsAcpi ? "ACPI sensor · " : "";
+        _cpu.Subtitle = $"{source}Load {Format.Percent(s.CpuLoad)} · {Shorten(s.CpuName) ?? "CPU"}";
         _cpu.Level = Thresholds.ForTemp(s.CpuTemp) is var l and not Level.Unknown ? l : Level.Ok;
-        _cpu.Push(s.CpuLoad ?? 0);
+        _cpu.Push(s.CpuLoad ?? 0, s.CpuTemp);
 
         if (s.GpuName is null)
         {
@@ -96,13 +106,13 @@ public sealed class DashboardViewModel : PageViewModel
         }
         else
         {
-            _gpu.Value = Format.Percent(s.GpuLoad);
+            _gpu.Value = Format.Celsius(s.GpuTemp);
             var vram = s.VramTotalMb is > 0 && s.VramUsedMb is { } used
                 ? $" · VRAM {used / 1024:0.0}/{s.VramTotalMb / 1024:0.0} GB"
                 : "";
-            _gpu.Subtitle = $"{Format.Celsius(s.GpuTemp)}{vram} · {Shorten(s.GpuName)}";
+            _gpu.Subtitle = $"Load {Format.Percent(s.GpuLoad)}{vram} · {Shorten(s.GpuName)}";
             _gpu.Level = Thresholds.ForTemp(s.GpuTemp) is var g and not Level.Unknown ? g : Level.Ok;
-            _gpu.Push(s.GpuLoad ?? 0);
+            _gpu.Push(s.GpuLoad ?? 0, s.GpuTemp);
         }
 
         _ram.Value = $"{s.RamUsed / 1073741824.0:0.0} / {s.RamTotal / 1073741824.0:0} GB";
@@ -111,8 +121,10 @@ public sealed class DashboardViewModel : PageViewModel
         _ram.Push(s.RamPercent);
 
         _net.Value = "↓ " + Format.Rate(s.TotalDown);
-        _net.Subtitle = "↑ " + Format.Rate(s.TotalUp) + $" · {s.Adapters.Count} adapter(s)";
-        _net.Level = Level.Ok;
+        var vpn = s.Vpn.Active ? "VPN on" : "VPN off";
+        var alertText = alerts > 0 ? $" · {alerts} alert(s)" : "";
+        _net.Subtitle = $"↑ {Format.Rate(s.TotalUp)} · {vpn}{alertText}";
+        _net.Level = security >= Level.Warn ? security : Level.Ok;
         _net.Push(s.TotalDown, s.TotalUp);
 
         // Disks get a usage bar each rather than a tile: "% used" barely moves, so a sparkline says nothing,

@@ -1,67 +1,213 @@
 <UserControl x:Class="PCMon.Views.NetworkView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:c="clr-namespace:PCMon.Controls">
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" MaxHeight="170" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
+             xmlns:c="clr-namespace:PCMon.Controls"
+             xmlns:vm="clr-namespace:PCMon.ViewModels"
+             xmlns:core="clr-namespace:PCMon.Core">
+    <UserControl.Resources>
+        <DataTemplate DataType="{x:Type vm:Badge}">
+            <Border Background="{DynamicResource SurfaceBrush}" BorderThickness="1" CornerRadius="14" Padding="10,4" Margin="0,0,8,0"
+                    BorderBrush="{Binding Level, Converter={StaticResource LevelToBrush}}" ToolTip="{Binding Tooltip}"
+                    AutomationProperties.Name="{Binding Text}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{Binding Glyph}" Style="{StaticResource Glyph}"
+                               Foreground="{Binding Level, Converter={StaticResource LevelToBrush}}" />
+                    <TextBlock Text="{Binding Text}" Margin="7,0,0,0" />
+                </StackPanel>
+            </Border>
+        </DataTemplate>
 
-        <TextBlock Text="Network" Style="{StaticResource PageTitle}" Margin="0,0,0,12" />
+        <Style x:Key="CardTitle" TargetType="TextBlock" BasedOn="{StaticResource Dim}">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
+    </UserControl.Resources>
 
-        <DataGrid Grid.Row="1" ItemsSource="{Binding Adapters}" SelectedItem="{Binding SelectedAdapter}"
-                  AutomationProperties.Name="Network adapters">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Adapter" Binding="{Binding Name}" Width="2*" />
-                <DataGridTextColumn Header="Type" Binding="{Binding Kind}" Width="90" />
-                <DataGridTextColumn Header="IPv4" Binding="{Binding Ipv4}" Width="130" />
-                <DataGridTextColumn Header="↓ Now" Binding="{Binding DownText}" Width="100" ElementStyle="{StaticResource RightCell}" />
-                <DataGridTextColumn Header="↑ Now" Binding="{Binding UpText}" Width="100" ElementStyle="{StaticResource RightCell}" />
-                <DataGridTextColumn Header="↓ Total" Binding="{Binding TotalDownText}" Width="100" ElementStyle="{StaticResource RightCell}" />
-                <DataGridTextColumn Header="↑ Total" Binding="{Binding TotalUpText}" Width="100" ElementStyle="{StaticResource RightCell}" />
-            </DataGrid.Columns>
-            <DataGrid.RowStyle>
-                <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
-                    <Setter Property="ToolTip" Value="{Binding Description}" />
-                </Style>
-            </DataGrid.RowStyle>
-        </DataGrid>
-
-        <Border Grid.Row="2" Style="{StaticResource Card}" Margin="0,12,0,12" Padding="14,10">
-            <DockPanel>
-                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
-                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                        <Rectangle Width="10" Height="3" Fill="{DynamicResource DownBrush}" VerticalAlignment="Center" />
-                        <TextBlock Text="Download" Style="{StaticResource Dim}" Margin="6,0,14,0" />
-                        <Rectangle Width="10" Height="3" Fill="{DynamicResource UpBrush}" VerticalAlignment="Center" />
-                        <TextBlock Text="Upload" Style="{StaticResource Dim}" Margin="6,0,0,0" />
-                    </StackPanel>
-                    <TextBlock Text="{Binding ChartCaption}" Style="{StaticResource Dim}" TextTrimming="CharacterEllipsis" />
-                </DockPanel>
-                <c:Sparkline Height="120" Values="{Binding ChartDown}" Values2="{Binding ChartUp}" Capacity="120"
-                             Stroke="{DynamicResource DownBrush}" Stroke2="{DynamicResource UpBrush}"
-                             AutomationProperties.Name="Two minute traffic chart" />
-            </DockPanel>
-        </Border>
-
-        <DockPanel Grid.Row="3" Margin="0,0,0,8">
-            <CheckBox DockPanel.Dock="Right" Content="Hide listening ports" IsChecked="{Binding HideListening}" />
-            <TextBlock Text="TCP connections" FontWeight="SemiBold" VerticalAlignment="Center" />
-            <TextBlock Text="{Binding ConnectionSummary}" Style="{StaticResource Dim}" Margin="10,0,0,0" />
+    <DockPanel>
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                <RadioButton Content="Traffic" Style="{StaticResource Chip}" GroupName="NetTab"
+                             IsChecked="{Binding Tab, Converter={StaticResource Equals}, ConverterParameter=Traffic}" />
+                <RadioButton Content="Connections" Style="{StaticResource Chip}" GroupName="NetTab"
+                             IsChecked="{Binding Tab, Converter={StaticResource Equals}, ConverterParameter=Connections}" />
+                <RadioButton Content="Security" Style="{StaticResource Chip}" GroupName="NetTab" Margin="0"
+                             IsChecked="{Binding Tab, Converter={StaticResource Equals}, ConverterParameter=Security}" />
+            </StackPanel>
+            <TextBlock Text="Network" Style="{StaticResource PageTitle}" />
         </DockPanel>
 
-        <DataGrid Grid.Row="4" ItemsSource="{Binding Connections}" AutomationProperties.Name="TCP connections">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Process" Binding="{Binding Process}" Width="*" />
-                <DataGridTextColumn Header="PID" Binding="{Binding Pid}" Width="70" ElementStyle="{StaticResource RightCell}" />
-                <DataGridTextColumn Header="Local" Binding="{Binding Local}" Width="170" />
-                <DataGridTextColumn Header="Remote" Binding="{Binding Remote}" Width="190" />
-                <DataGridTextColumn Header="State" Binding="{Binding State}" Width="110" />
-            </DataGrid.Columns>
-        </DataGrid>
-    </Grid>
+        <!-- always-visible status strip -->
+        <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+            <ContentControl Content="{Binding VpnBadge}" Focusable="False" />
+            <ContentControl Content="{Binding FirewallBadge}" Focusable="False" />
+            <ContentControl Content="{Binding AntivirusBadge}" Focusable="False" />
+            <ContentControl Content="{Binding AttackBadge}" Focusable="False" />
+        </WrapPanel>
+
+        <Grid>
+            <!-- ===== Traffic ===== -->
+            <Grid Visibility="{Binding Tab, Converter={StaticResource EqualsToVisibility}, ConverterParameter=Traffic}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" MaxHeight="220" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <DataGrid ItemsSource="{Binding Adapters}" SelectedItem="{Binding SelectedAdapter}" AutomationProperties.Name="Network adapters">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Adapter" Binding="{Binding Name}" Width="2*" />
+                        <DataGridTextColumn Header="Type" Binding="{Binding Kind}" Width="80" />
+                        <DataGridTextColumn Header="IPv4" Binding="{Binding Ipv4}" Width="125" />
+                        <DataGridTextColumn Header="↓ In now" Binding="{Binding DownText}" Width="100" ElementStyle="{StaticResource RightCell}" />
+                        <DataGridTextColumn Header="↑ Out now" Binding="{Binding UpText}" Width="100" ElementStyle="{StaticResource RightCell}" />
+                        <DataGridTextColumn Header="↓ In total" Binding="{Binding TotalDownText}" Width="100" ElementStyle="{StaticResource RightCell}" />
+                        <DataGridTextColumn Header="↑ Out total" Binding="{Binding TotalUpText}" Width="100" ElementStyle="{StaticResource RightCell}" />
+                    </DataGrid.Columns>
+                    <DataGrid.RowStyle>
+                        <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                            <Setter Property="ToolTip" Value="{Binding Description}" />
+                        </Style>
+                    </DataGrid.RowStyle>
+                </DataGrid>
+
+                <Border Grid.Row="1" Style="{StaticResource Card}" Margin="0,12,0,0" Padding="14,10">
+                    <DockPanel>
+                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                <Rectangle Width="10" Height="3" Fill="{DynamicResource DownBrush}" VerticalAlignment="Center" />
+                                <TextBlock Text="Incoming" Style="{StaticResource Dim}" Margin="6,0,14,0" />
+                                <Rectangle Width="10" Height="3" Fill="{DynamicResource UpBrush}" VerticalAlignment="Center" />
+                                <TextBlock Text="Outgoing" Style="{StaticResource Dim}" Margin="6,0,0,0" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding ChartCaption}" Style="{StaticResource Dim}" TextTrimming="CharacterEllipsis" />
+                        </DockPanel>
+                        <c:Sparkline MinHeight="120" Values="{Binding ChartDown}" Values2="{Binding ChartUp}" Capacity="120"
+                                     Stroke="{DynamicResource DownBrush}" Stroke2="{DynamicResource UpBrush}"
+                                     AutomationProperties.Name="Two minute traffic chart" />
+                    </DockPanel>
+                </Border>
+            </Grid>
+
+            <!-- ===== Connections ===== -->
+            <DockPanel Visibility="{Binding Tab, Converter={StaticResource EqualsToVisibility}, ConverterParameter=Connections}">
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <CheckBox Content="Hide listening" IsChecked="{Binding HideListening}" Margin="0,0,14,0" />
+                        <CheckBox Content="Hide loopback" IsChecked="{Binding HideLoopback}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton Content="All" Style="{StaticResource Chip}" GroupName="ConnDir"
+                                     IsChecked="{Binding DirectionFilter, Converter={StaticResource Equals}, ConverterParameter=All}" />
+                        <RadioButton Content="↓ Incoming" Style="{StaticResource Chip}" GroupName="ConnDir"
+                                     IsChecked="{Binding DirectionFilter, Converter={StaticResource Equals}, ConverterParameter=Incoming}" />
+                        <RadioButton Content="↑ Outgoing" Style="{StaticResource Chip}" GroupName="ConnDir"
+                                     IsChecked="{Binding DirectionFilter, Converter={StaticResource Equals}, ConverterParameter=Outgoing}" />
+                        <TextBlock Text="{Binding ConnectionSummary}" Style="{StaticResource Dim}" Margin="8,0,0,0" />
+                    </StackPanel>
+                </DockPanel>
+
+                <DataGrid ItemsSource="{Binding ConnectionsView}" AutomationProperties.Name="TCP connections">
+                    <DataGrid.Columns>
+                        <DataGridTemplateColumn Header="Direction" Width="85" SortMemberPath="Direction">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock x:Name="T" Text="{Binding DirectionText}" />
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding Direction}" Value="Incoming">
+                                            <Setter TargetName="T" Property="Foreground" Value="{DynamicResource DownBrush}" />
+                                            <Setter TargetName="T" Property="FontWeight" Value="SemiBold" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Direction}" Value="Outgoing">
+                                            <Setter TargetName="T" Property="Foreground" Value="{DynamicResource UpBrush}" />
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="Process" Binding="{Binding Process}" Width="*" MinWidth="90" />
+                        <DataGridTextColumn Header="PID" Binding="{Binding Pid}" Width="62" ElementStyle="{StaticResource RightCell}" />
+                        <DataGridTextColumn Header="Proto" Binding="{Binding Protocol}" Width="60" />
+                        <DataGridTextColumn Header="Local IP" Binding="{Binding LocalAddress}" Width="1.2*" MinWidth="125" />
+                        <DataGridTextColumn Header="Port" Binding="{Binding LocalPort}" Width="58" ElementStyle="{StaticResource RightCell}" />
+                        <DataGridTextColumn Header="Remote IP" Binding="{Binding RemoteAddress}" Width="1.4*" MinWidth="130" />
+                        <DataGridTextColumn Header="Port" Binding="{Binding RemotePort}" Width="58" ElementStyle="{StaticResource RightCell}" />
+                        <DataGridTextColumn Header="Remote is" Binding="{Binding Scope}" Width="80" />
+                        <DataGridTextColumn Header="State" Binding="{Binding State}" Width="90" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+
+            <!-- ===== Security ===== -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False"
+                          Visibility="{Binding Tab, Converter={StaticResource EqualsToVisibility}, ConverterParameter=Security}">
+                <StackPanel>
+                    <UniformGrid Columns="3" Margin="0,0,-12,0">
+                        <Border Style="{StaticResource Card}" Margin="0,0,12,12">
+                            <StackPanel>
+                                <TextBlock Text="VPN" Style="{StaticResource CardTitle}" />
+                                <TextBlock Text="{Binding VpnDetail}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}" Margin="0,0,12,12">
+                            <StackPanel>
+                                <TextBlock Text="Firewall" Style="{StaticResource CardTitle}" />
+                                <TextBlock Text="{Binding FirewallDetail}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}" Margin="0,0,12,12">
+                            <StackPanel>
+                                <TextBlock Text="Antivirus" Style="{StaticResource CardTitle}" />
+                                <TextBlock Text="{Binding AntivirusDetail}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}" Margin="0,0,12,12">
+                            <StackPanel>
+                                <TextBlock Text="Threats (Defender)" Style="{StaticResource CardTitle}" />
+                                <TextBlock Text="{Binding ThreatDetail}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}" Margin="0,0,12,12">
+                            <StackPanel>
+                                <TextBlock Text="Sign-in attempts" Style="{StaticResource CardTitle}" />
+                                <TextBlock Text="{Binding SignInDetail}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}" Margin="0,0,12,12">
+                            <StackPanel>
+                                <TextBlock Text="Live attack watch" Style="{StaticResource CardTitle}" />
+                                <TextBlock TextWrapping="Wrap"
+                                           Text="Checks the connection table every 2 s for SYN floods, port scans and repeated hits on RDP, SSH or SMB." />
+                            </StackPanel>
+                        </Border>
+                    </UniformGrid>
+
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="Findings" Style="{StaticResource CardTitle}" />
+                            <TextBlock Text="{x:Static core:Strings.NoAttacks}" FontWeight="SemiBold" Foreground="{DynamicResource OkBrush}" Margin="0,0,0,8"
+                                       Visibility="{Binding NoAlerts, Converter={StaticResource BoolToVisibility}}" />
+                            <ItemsControl ItemsSource="{Binding Findings}" Focusable="False">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="26" />
+                                                <ColumnDefinition />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding Glyph}" Style="{StaticResource Glyph}" VerticalAlignment="Top" Margin="0,2,0,0"
+                                                       Foreground="{Binding Level, Converter={StaticResource LevelToBrush}}" />
+                                            <StackPanel Grid.Column="1">
+                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                                <TextBlock Text="{Binding Detail}" Style="{StaticResource Dim}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="2" Text="{Binding WhenText}" Style="{StaticResource Dim}" VerticalAlignment="Top" Margin="12,0,0,0" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </DockPanel>
 </UserControl>

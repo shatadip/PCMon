@@ -35,6 +35,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         _sampler.Sampled += OnSampled;
         _sampler.ProcessesSampled += OnProcessesSampled;
+        _sampler.ConnectionsSampled += (connections, findings) => _dispatcher.BeginInvoke(() =>
+        {
+            try { Network.ApplyConnections(connections, findings); }
+            catch (Exception ex) { Log.Error("apply connections", ex); }
+        });
+        _sampler.SecuritySampled += posture => _dispatcher.BeginInvoke(() =>
+        {
+            try { Network.ApplySecurity(posture); }
+            catch (Exception ex) { Log.Error("apply security", ex); }
+        });
     }
 
     public static string Version =>
@@ -108,15 +118,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     void Apply(Snapshot s)
     {
-        Dashboard.Apply(s);
-        Hardware.Apply(s);
         Network.Apply(s);
+        Dashboard.Apply(s, Network.SecurityLevel, Network.AlertCount);
+        Hardware.Apply(s);
 
         _netIdleSeconds = s.TotalDown + s.TotalUp < 2048 ? _netIdleSeconds + 1 : 0;
         var disks = s.Disks.Select(d => Thresholds.ForDisk(d.Disk.UsedPercent)).ToArray();
         StatusText = StatusMessenger.Pick(new StatusInput(
             Thresholds.ForTemp(s.CpuTemp), Thresholds.ForTemp(s.GpuTemp), Thresholds.ForRam(s.RamPercent),
-            Thresholds.Worst(disks), _netIdleSeconds));
+            Thresholds.Worst(disks), _netIdleSeconds,
+            Network.SecurityLevel, Network.SecurityHeadline, Network.AlertCount));
     }
 
     public void Dispose() => _sampler.Dispose();

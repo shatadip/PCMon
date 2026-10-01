@@ -70,21 +70,15 @@ static class Native
     }
 
     public const int AF_INET = 2;
+    public const int AF_INET6 = 23;
     public const int TCP_TABLE_OWNER_PID_ALL = 5;
+
+    /// <summary>Which interface Windows would route an IPv4 address through. A table lookup; sends nothing.</summary>
+    [DllImport("iphlpapi.dll")]
+    public static extern uint GetBestInterface(uint destAddr, out uint bestIfIndex);
 
     [DllImport("iphlpapi.dll", SetLastError = true)]
     public static extern uint GetExtendedTcpTable(IntPtr table, ref int size, bool order, int ipVersion, int tableClass, uint reserved);
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct MIB_TCPROW_OWNER_PID
-    {
-        public uint state;
-        public uint localAddr;
-        public uint localPort;
-        public uint remoteAddr;
-        public uint remotePort;
-        public int owningPid;
-    }
 
     [DllImport("dwmapi.dll")]
     public static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);

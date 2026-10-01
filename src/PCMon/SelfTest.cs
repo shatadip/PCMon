@@ -78,8 +78,33 @@ static class SelfTest
         report["profile"] = Step("profile", () => sampler.Profile(5), required: false);
         report["profileDevices"] = Step("profileDevices", sampler.ProfileDevices, required: false);
 
-        var tcp = Step("tcp", NetworkService.TcpConnections);
-        report["tcpConnections"] = tcp?.Count;
+        var conns = Step("connections", sampler.SampleConnections);
+        if (conns.Connections is not null)
+        {
+            var c = conns.Connections;
+            report["tcpConnections"] = c.Count;
+            report["tcpV6"] = c.Count(x => x.Row.Protocol == "TCPv6");
+            report["incoming"] = c.Count(x => x.Direction == Core.Direction.Incoming);
+            report["outgoing"] = c.Count(x => x.Direction == Core.Direction.Outgoing);
+            report["listening"] = c.Count(x => x.Direction == Core.Direction.Listening);
+            report["toInternet"] = c.Count(x => x.RemoteScope == "Internet");
+            report["liveFindings"] = conns.Findings.Select(f => $"{f.Level}: {f.Title}").ToList();
+        }
+
+        report["vpn"] = Step("vpn", () => new NetworkService().Vpn());
+
+        var posture = Step("security", SecurityService.Collect);
+        if (posture is not null)
+        {
+            report["firewall"] = posture.Firewall;
+            report["antivirus"] = posture.Antivirus;
+            report["detections"] = posture.Detections.Count;
+            report["failedSignIns24h"] = posture.FailedSignIns.Count;
+            report["failedRemoteSignIns24h"] = posture.FailedSignIns.Count(f => f.IsRemote);
+            report["signInLogError"] = posture.SignInLogError;
+            report["postureFindings"] = Core.SecurityAnalysis.Posture(posture, DateTime.Now)
+                .Select(f => $"{f.Level}: {f.Title}").ToList();
+        }
 
         var tasks = Step("scheduledTasks", ScheduledTaskService.Load);
         if (tasks is not null)

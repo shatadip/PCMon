@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net.NetworkInformation;
 using PCMon.Services;
 using Xunit;
 
@@ -100,10 +101,29 @@ public class IntegrationTests
     }
 
     [Fact]
-    public void TcpTableParses()
+    public void TcpTableParsesAndMatchesNetstatView()
     {
         var rows = NetworkService.TcpConnections();
-        Assert.All(rows, r => Assert.Contains(":", r.Local));
+        Assert.NotEmpty(rows);
+        Assert.All(rows, r => Assert.InRange(r.LocalPort, 0, 65535));
+        Assert.Contains(rows, r => r.State == "Listen" && r.LocalPort == 135); // RPC always listens on Windows
+
+        // Cross-check against .NET's own IPv4 listener list.
+        var dotnet = IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners()
+            .Where(e => e.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork).Select(e => e.Port).ToHashSet();
+        var ours = rows.Where(r => r.Protocol == "TCP" && r.State == "Listen").Select(r => r.LocalPort).ToHashSet();
+        Assert.True(dotnet.Intersect(ours).Count() >= dotnet.Count * 0.9, "listener ports should agree");
+    }
+
+    [Fact]
+    public void VpnDetectionAndSecurityPostureRun()
+    {
+        var vpn = new NetworkService().Vpn();
+        if (!vpn.Installed) Assert.False(vpn.Active);
+
+        var p = SecurityService.Collect();
+        Assert.NotNull(p.Firewall);
+        Assert.All(p.Detections, d => Assert.False(string.IsNullOrEmpty(d.Name)));
     }
 
     [Fact]

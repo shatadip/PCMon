@@ -65,6 +65,15 @@
                                     <c:Sparkline Grid.Row="3" Margin="0,8,0,0" Values="{Binding Points}" Values2="{Binding Points2}"
                                                  Maximum="{Binding Maximum}" Capacity="60"
                                                  Stroke="{DynamicResource DownBrush}" Stroke2="{DynamicResource UpBrush}" />
+                                    <!-- legend: blue = first series, pink = second -->
+                                    <StackPanel Grid.Row="3" Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Left"
+                                                Margin="0,6,0,0" IsHitTestVisible="False"
+                                                Visibility="{Binding Legend1, Converter={StaticResource NullToCollapsed}}">
+                                        <Rectangle Width="8" Height="2" Fill="{DynamicResource DownBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding Legend1}" FontSize="10" Foreground="{DynamicResource DimBrush}" Margin="3,0,8,0" />
+                                        <Rectangle Width="8" Height="2" Fill="{DynamicResource UpBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding Legend2}" FontSize="10" Foreground="{DynamicResource DimBrush}" Margin="3,0,0,0" />
+                                    </StackPanel>
                                 </Grid>
                             </Grid>
                         </Border>

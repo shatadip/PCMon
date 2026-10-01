@@ -51,7 +51,7 @@ One resizable window (default 1100×720, min 900×600). It has a left nav rail w
 ## 4. Functional requirements
 
 ### 4.1 Dashboard (home)
-- **FR-1 MUST**: Show tiles for CPU (total load, package temp), GPU (load, temp, VRAM), RAM (used/total) and network (current ↓/↑). Add a **Storage** card with one usage bar per fixed disk, showing used %, free space and temp if available.
+- **FR-1 MUST**: Show tiles for CPU and GPU, RAM (used/total) and network (current ↓/↑, VPN on/off, alert count). The CPU and GPU tiles lead with **temperature in °C**, with load % (and VRAM) underneath, and the sparkline plots both load and temperature. Add a **Storage** card with one usage bar per fixed disk, showing used %, free space and temp if available.
 - **FR-2 MUST**: Each tile has a 60-second sparkline. Refresh every **1 s** on a background thread, and never block the UI thread. Disks get bars instead of sparklines: "% used" barely moves, and PCs with many drives would push everything else off screen.
 - **FR-3 MUST**: Colour each tile **green / amber / red** by threshold. The defaults are: CPU/GPU temp ≥ 80 °C amber, ≥ 90 °C red. RAM ≥ 85 % amber, ≥ 95 % red. Disk ≥ 90 % amber.
 - **FR-4 MUST**: Show the top 5 processes by CPU and by RAM. Clicking one jumps to that process on the Tasks page.
@@ -64,8 +64,17 @@ One resizable window (default 1100×720, min 900×600). It has a left nav rail w
 
 ### 4.3 Network
 - **FR-9 MUST**: For each active adapter, show the name, type (Wi-Fi/Ethernet), IPv4, live ↓/↑ speed, and totals since app start. Calculate speed from `NetworkInterface.GetIPStatistics()` deltas.
-- **FR-10 MUST**: Show a 2-minute ↓/↑ line chart for the selected adapter.
-- **FR-11 SHOULD**: Show a table of active TCP connections: **Process | PID | Local | Remote | State**. Get it via P/Invoke `GetExtendedTcpTable`.
+- **FR-10 MUST**: Show a 2-minute incoming/outgoing line chart for the selected adapter.
+- **FR-11 MUST**: Show a table of IPv4 + IPv6 TCP connections: **Direction | Process | PID | Protocol | Local IP | Port | Remote IP | Port | Remote is | State**. Get it via `GetExtendedTcpTable`.
+  - A connection is **↓ Incoming** when its local port is one this PC listens on; otherwise it's **↑ Outgoing**.
+  - "Remote is" shows Internet, LAN (private ranges) or Loopback.
+  - Filter chips offer All / Incoming / Outgoing, and checkboxes hide listening sockets and loopback.
+- **FR-11a MUST**: Show **VPN status** from local data only: the adapter is a known VPN driver or a PPP connection, plus whether it's Up. "All traffic" vs "split tunnel" comes from `GetBestInterface` for a public address, which is a routing-table lookup and sends nothing.
+- **FR-11b MUST**: Add an **attack watch**, with a status strip (VPN · Firewall · Antivirus · Alerts) and a Security tab.
+  - **Live, every 2 s:** SYN floods (≥ 20 half-open connections from one address), port scans (one address touching ≥ 10 local ports in 60 s), repeated hits on RDP/SSH/SMB/VNC/FTP/Telnet/WinRM (≥ 15 in 60 s), and an informational list of sensitive services listening on all networks.
+  - **Every 2 min:** firewall profiles (registry, GPO first), antivirus from Security Center, Defender detections from the last 7 days (quarantined = warning, not removed = critical), and Security-log event 4625.
+  - **Event 4625:** remote failed sign-ins (logon types 3/8/10 with a source IP) are warnings, and ≥ 10 from one IP in 24 h is critical. Local wrong-password prompts are informational only.
+  - All wording says "possible". PCMON is not an antivirus.
 
 ### 4.4 Tasks (running vs. not)
 - **FR-12 MUST**: Add a **Processes** tab with the columns Name, PID, Status, CPU %, RAM (MB) and Path. Status is **Running**, **Not Responding** (a windowed process where `Responding == false`) or **Suspended**. Make the table sortable and searchable.
@@ -99,10 +108,12 @@ The status bar shows the single most important message, in this priority order:
 
 | Situation | Message |
 |---|---|
+| Critical security alert | "Someone's knocking: {alert}. See Network → Security." |
 | CPU ≥ 90 °C | "CPU is hotter than your takes. Check cooling." |
 | GPU ≥ 90 °C | "GPU is running a fever. Check cooling." |
 | RAM ≥ 95 % | "RAM is full. Chrome has entered the chat." |
 | Any temp ≥ 80 °C | "Things are warming up. Keep an eye on the amber tiles." |
+| Security warning(s) | "{n} security alert(s) on Network → Security. Probably fine. Probably." |
 | RAM ≥ 85 % | "Memory is getting crowded. Maybe close a tab. Or forty." |
 | Disk ≥ 90 % | "A disk is nearly full. Time for some digital decluttering." |
 | Net idle 60 s | "The internet is quiet. Too quiet." |
@@ -124,7 +135,7 @@ Elsewhere in the app:
   ```
   dotnet publish src/PCMon -c Release -r win-x64 --self-contained true ^
     -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true ^
-    -p:EnableCompressionInSingleFile=true -p:DebugType=none
+    -p:DebugType=none
   ```
   (No trimming. WPF doesn't support it.)
 - **MUST** embed an app icon, a version number and a `requireAdministrator` manifest.
@@ -132,7 +143,7 @@ Elsewhere in the app:
 - **SHOULD** add a GitHub Actions workflow that builds `PCMON.exe` when a `v*` tag is pushed and attaches it to a GitHub Release.
 
 ## 8. Out of scope (v1)
-Installer or MSI, auto-update, fan control or overclocking, starting and stopping services, per-process bandwidth, alerts and notifications, CSV export, and a tray icon. *PCMON watches. It does not tinker.*
+Installer or MSI, auto-update, fan control or overclocking, starting and stopping services, per-process bandwidth, pop-up notifications, blocking connections or editing firewall rules, public-IP or GeoIP lookups (these would need network calls), CSV export, and a tray icon. *PCMON watches. It does not tinker.*
 
 ## 9. Acceptance checklist
 - [ ] Double-click `PCMON.exe` on a clean Win 11 VM. After the UAC prompt, the dashboard loads in ≤ 3 s.

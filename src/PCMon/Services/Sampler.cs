@@ -20,7 +20,8 @@ public sealed record Snapshot(
     IReadOnlyList<AdapterSample> Adapters,
     bool HasLhmCpuTemp,
     bool HardwareReady,
-    string? HardwareError)
+    string? HardwareError,
+    VpnStatus Vpn)
 {
     public double RamPercent => RamTotal > 0 ? RamUsed * 100.0 / RamTotal : 0;
     public double TotalDown => Adapters.Sum(a => a.DownPerSec);
@@ -38,12 +39,20 @@ sealed class Sampler : IDisposable
     readonly NetworkService _network = new();
     readonly ProcessService _processes = new();
     readonly CancellationTokenSource _cts = new();
+    readonly AttackWatch _attackWatch = new();
     Dictionary<string, string> _diskModels = [];
     double? _acpiTemp;
-    int _tick;
+    VpnStatus _vpn = VpnStatus.None;
+    int _tick, _securityBusy;
 
     public event Action<Snapshot>? Sampled;
     public event Action<IReadOnlyList<ProcSample>>? ProcessesSampled;
+
+    /// <summary>Every 2 s: the classified TCP table plus live attack heuristics over it.</summary>
+    public event Action<IReadOnlyList<ConnectionInfo>, IReadOnlyList<SecurityFinding>>? ConnectionsSampled;
+
+    /// <summary>At start and every 2 minutes: firewall, antivirus, Defender detections, failed sign-ins.</summary>
+    public event Action<SecurityPosture>? SecuritySampled;
 
     Task? _loop;
 
@@ -75,6 +84,22 @@ sealed class Sampler : IDisposable
                 {
                     try { ProcessesSampled?.Invoke(_processes.Sample()); }
                     catch (Exception ex) { Log.Error("processes", ex); }
+                }
+                else
+                {
+                    try { SampleConnections(); }
+                    catch (Exception ex) { Log.Error("connections", ex); }
+                }
+
+                // Event-log and WMI queries take ~1 s; run them off the loop so tiles keep ticking.
+                if (_tick % 120 == 0 && Interlocked.Exchange(ref _securityBusy, 1) == 0)
+                {
+                    _ = Task.Run(() =>
+                    {
+                        try { SecuritySampled?.Invoke(SecurityService.Collect()); }
+                        catch (Exception ex) { Log.Error("security", ex); }
+                        finally { Interlocked.Exchange(ref _securityBusy, 0); }
+                    });
                 }
                 _tick++;
             } while (await timer.WaitForNextTickAsync(_cts.Token));
@@ -117,9 +142,20 @@ sealed class Sampler : IDisposable
             .Select(d => (d, DiskTemperature(sensors, d.Model)))
             .ToList();
 
+        var adapters = _network.Sample();
+        if (_tick % 5 == 0) _vpn = _network.Vpn();
+
         return new Snapshot(cpuLoad, cpuTemp, acpi, cpuName, gpuName, gpuLoad, gpuTemp, vramUsed, vramTotal,
-            mem.Item1, mem.Item2, disks, sensors, _network.Sample(), hasLhmCpuTemp,
-            _hardware.IsOpen || _hardware.InitError is not null, _hardware.InitError);
+            mem.Item1, mem.Item2, disks, sensors, adapters, hasLhmCpuTemp,
+            _hardware.IsOpen || _hardware.InitError is not null, _hardware.InitError, _vpn);
+    }
+
+    public (IReadOnlyList<ConnectionInfo> Connections, IReadOnlyList<SecurityFinding> Findings) SampleConnections()
+    {
+        var connections = ConnectionClassifier.Classify(NetworkService.TcpConnections());
+        var findings = _attackWatch.Analyze(connections, DateTime.Now);
+        ConnectionsSampled?.Invoke(connections, findings);
+        return (connections, findings);
     }
 
     static double? DiskTemperature(IReadOnlyList<SensorReading> sensors, string? model)

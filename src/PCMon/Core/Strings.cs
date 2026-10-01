@@ -19,6 +19,12 @@ public static class Strings
     public const string RamBusy = "Memory is getting crowded. Maybe close a tab. Or forty.";
     public const string DiskFull = "A disk is nearly full. Time for some digital decluttering.";
     public const string NetIdle = "The internet is quiet. Too quiet.";
+
+    public static string SecurityCritical(string headline) => $"Someone's knocking: {headline}. See Network → Security.";
+    public static string SecurityWarn(int alerts) =>
+        $"{alerts} security alert(s) on Network → Security. Probably fine. Probably.";
+    public const string NoAttacks = "No signs of attack. The castle walls hold.";
+    public const string ChecksPending = "Checking the locks…";
     public const string Starting = "Warming up the sensors…";
 
     public static string EndTaskConfirm(string name) =>
@@ -52,17 +58,20 @@ public static class Strings
         "ACPI thermal zone where it can.";
 }
 
-public sealed record StatusInput(Level CpuTemp, Level GpuTemp, Level Ram, Level Disk, double NetIdleSeconds);
+public sealed record StatusInput(Level CpuTemp, Level GpuTemp, Level Ram, Level Disk, double NetIdleSeconds,
+    Level Security = Level.Unknown, string? SecurityHeadline = null, int SecurityAlerts = 0);
 
 /// <summary>Picks the one status-bar message that matters most right now (worst problem wins).</summary>
 public static class StatusMessenger
 {
     public static string Pick(StatusInput s)
     {
+        if (s.Security == Level.Critical) return Strings.SecurityCritical(s.SecurityHeadline ?? "a critical security alert");
         if (s.CpuTemp == Level.Critical) return Strings.CpuHot;
         if (s.GpuTemp == Level.Critical) return Strings.GpuHot;
         if (s.Ram == Level.Critical) return Strings.RamFull;
         if (Thresholds.Worst(s.CpuTemp, s.GpuTemp) >= Level.Warn) return Strings.Warming;
+        if (s.Security == Level.Warn) return Strings.SecurityWarn(Math.Max(1, s.SecurityAlerts));
         if (s.Ram >= Level.Warn) return Strings.RamBusy;
         if (s.Disk >= Level.Warn) return Strings.DiskFull;
         if (s.NetIdleSeconds >= 60) return Strings.NetIdle;

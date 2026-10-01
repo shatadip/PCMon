@@ -69,6 +69,11 @@ public partial class MainWindow : Window
         await Shot("dashboard", _vm.Dashboard, settleMs: 500);
         await Shot("hardware", _vm.Hardware);
         await Shot("network", _vm.Network);
+        _vm.Network.Tab = "Connections";
+        await Shot("connections", _vm.Network);
+        _vm.Network.Tab = "Security";
+        await Shot("security", _vm.Network, () => _vm.Network.AntivirusBadge.Text != Core.Strings.ChecksPending);
+        _vm.Network.Tab = "Traffic";
         await Shot("tasks", _vm.Tasks);
         _vm.Tasks.Tab = "Scheduled";
         await Shot("scheduled", _vm.Tasks, () => !_vm.Tasks.IsLoadingTasks && _vm.Tasks.ScheduledTasks.Count > 0);
